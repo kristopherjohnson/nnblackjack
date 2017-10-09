@@ -21,6 +21,8 @@ Cards are represented by one-character symbols, where
 """
 
 
+RANKS = [ '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A' ]
+
 RANK_VALUE = {
     '2' : 2,
     '3' : 3,
@@ -37,8 +39,6 @@ RANK_VALUE = {
     'A' : 11,
 }
 
-RANKS = RANK_VALUE.keys()
-
 
 HIT = "Hit"
 STAND = "Stand"
@@ -48,7 +48,7 @@ DOUBLE = "Double"
 
 def basic_strategy_action(deal):
     """
-    Return the best action ("Hit", "Stand", "Split", or "Double") for given deal.
+    Return the best action ("Hit", "Stand", "Split", or "Double") for the given deal.
     """
 
     # See <https://www.cs.bu.edu/~hwxi/academic/courses/CS320/Spring02/assignments/06/basic-strategy.html>
@@ -80,7 +80,7 @@ def basic_strategy_action(deal):
                 return HIT
 
         if card1_value == 4:
-            if 5 <= dealer_value <= 6:
+            if dealer_value == 5 or dealer_value == 6:
                 return SPLIT
             else:
                 return HIT
@@ -99,7 +99,7 @@ def basic_strategy_action(deal):
 
         # Note: 5,5 will be handled as 10 below
 
-    if card1 == 'A':  # One Ace
+    if card1 == 'A':  # One ace
 
         if card2_value == 2 or card2_value == 3:
             if dealer_value == 5 or dealer_value == 6:
@@ -129,7 +129,8 @@ def basic_strategy_action(deal):
 
         return STAND
 
-    else:
+    else: # No ace
+
         total = card1_value + card2_value
 
         if total <= 8:
@@ -166,7 +167,6 @@ def basic_strategy_action(deal):
                 return HIT
 
         return STAND
-
 
 
 def generate_basic_strategy_data():
