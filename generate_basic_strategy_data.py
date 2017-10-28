@@ -64,50 +64,29 @@ def basic_strategy_action(card1, card2, dealer):
             return SPLIT
 
         if card1_value in [2, 3, 7]:
-            if 2 <= dealer_value <= 7:
-                return SPLIT
-            else:
-                return HIT
+            return SPLIT if 2 <= dealer_value <= 7 else HIT
 
         if card1_value == 4:
-            if dealer_value in [5, 6]:
-                return SPLIT
-            else:
-                return HIT
+            return SPLIT if dealer_value in [5, 6] else HIT
 
         if card1_value == 6:
-            if 2 <= dealer_value <= 6:
-                return SPLIT
-            else:
-                return HIT
+            return SPLIT if 2 <= dealer_value <= 6 else HIT
 
         if card1_value == 9:
-            if dealer_value in [2, 3, 4, 5, 6, 8, 9]:
-                return SPLIT
-            else:
-                return HIT
+            return SPLIT if dealer_value in [2, 3, 4, 5, 6, 8, 9] else HIT
 
         # Note: 5,5 will be handled as 10 below
 
-    if card1 == 'A':  # One ace
+    if card1 == 'A':  # Soft total
 
         if card2_value in [2, 3]:
-            if dealer_value in [5, 6]:
-                return DOUBLE
-            else:
-                return HIT
+            return DOUBLE if dealer_value in [5, 6] else HIT
 
         if card2_value in [4, 5]:
-            if 4 <= dealer_value <= 6:
-                return DOUBLE
-            else:
-                return HIT
+            return DOUBLE if 4 <= dealer_value <= 6 else HIT
 
         if card2_value == 6:
-            if 3 <= dealer_value <= 6:
-                return DOUBLE
-            else:
-                return HIT
+            return DOUBLE if 3 <= dealer_value <= 6 else HIT
 
         if card2_value == 7:
             if 3 <= dealer_value <= 6:
@@ -119,7 +98,7 @@ def basic_strategy_action(card1, card2, dealer):
 
         return STAND
 
-    else: # No ace
+    else: # Hard total
 
         total = card1_value + card2_value
 
@@ -127,60 +106,64 @@ def basic_strategy_action(card1, card2, dealer):
             return HIT
 
         if total == 9:
-            if 3 <= dealer_value <= 6:
-                return DOUBLE
-            else:
-                return HIT
+            return DOUBLE if 3 <= dealer_value <= 6 else HIT
 
         if total == 10:
-            if dealer_value <= 9:
-                return DOUBLE
-            else:
-                return HIT
+            return DOUBLE if dealer_value <= 9 else HIT
 
         if total == 11:
-            if dealer_value <= 10:
-                return DOUBLE
-            else:
-                return HIT
+            return DOUBLE if dealer_value <= 10 else HIT
 
         if total == 12:
-            if 4 <= dealer_value <= 6:
-                return STAND
-            else:
-                return HIT
+            return STAND if 4 <= dealer_value <= 6 else HIT
 
         if 13 <= total <= 16:
-            if 2 <= dealer_value <= 6:
-                return STAND
-            else:
-                return HIT
+            return STAND if 2 <= dealer_value <= 6 else HIT
 
         return STAND
 
 
+def soft_total(card1, card2):
+    """
+    Returns the sum of the values of the two cards.
+
+    In the case of two aces, returns 12.
+    """
+    if card1 == 'A' and card2 == 'A':
+        return 12
+    else:
+        return RANK_VALUE[card1] + RANK_VALUE[card2]
+
+
 def generate_basic_strategy_data():
     """
-    Generates basic strategy for every possible Blackjack deal.
+    Generates basic strategy actions for every possible Blackjack deal.
 
     Output is a sequence of dictionaries with keys
-    "card1", "card2", "dealer", and "action".
+    "card1", "card2", "total", "hardness", "dealer", and "action".
 
     "card1" and "card2" are the cards dealt to the player.
+
+    "total" is the sum of the values of player's cards.
+
+    "hardness" is "Soft" if at least one of the cards is an Ace,
+    or "Hard" otherwise.
 
     "dealer" is the dealer's up card.
 
     "action" is "Hit", "Stand", "Split", or "Double".
     """
-    return ({ "card1"  : card1,
-              "card2"  : card2,
-              "dealer" : dealer,
-              "action" : basic_strategy_action(card1, card2, dealer)
+    return ({ "card1"    : card1,
+              "card2"    : card2,
+              "total"    : soft_total(card1, card2),
+              "hardness" : "Soft" if card1 == 'A' or card2 == 'A' else "Hard",
+              "dealer"   : dealer,
+              "action"   : basic_strategy_action(card1, card2, dealer)
             } for card1 in RANKS for card2 in RANKS for dealer in RANKS) 
 
 
 if __name__ == "__main__":
     for deal in generate_basic_strategy_data():
-        print("{card1}-{card2} {dealer} {action}".format(**deal))
+        print("{card1}-{card2} ({hardness} {total}) {dealer} {action}".format(**deal))
 
 
