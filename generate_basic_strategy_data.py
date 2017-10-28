@@ -37,15 +37,31 @@ RANK_VALUE = {
 HIT = "Hit"
 STAND = "Stand"
 SPLIT = "Split"
-DOUBLE = "Double"
+DOUBLE_OR_HIT = "DoubleH"
+DOUBLE_OR_STAND = "DoubleS"
+SURRENDER_OR_HIT = "Surrender"
 
 
 def basic_strategy_action(card1, card2, dealer):
     """
-    Return the best action ("Hit", "Stand", "Split", or "Double") for the given deal.
+    Return the best action for the given deal.
+
+    Possible return values are
+
+    - "Hit"
+    - "Stand"
+    - "DoubleH" (if Double not allowed, Hit)
+    - "DoubleS" (if Double not allowed, Stand)
+    - "Surrender" (if not allowed, Hit)
     """
 
-    # See <https://www.cs.bu.edu/~hwxi/academic/courses/CS320/Spring02/assignments/06/basic-strategy.html>
+    # Based on the chart at <https://en.m.wikipedia.org/wiki/Blackjack#Basic_strategy>,
+    # which assumes
+    #
+    # - four to eight decks
+    # - dealer hits on soft 17
+    # - double allowed after a split
+    # - only original bets are lost after dealer blackjack
 
     # If either player card is an Ace, make it card1.
     if card2 == 'A':
@@ -55,72 +71,93 @@ def basic_strategy_action(card1, card2, dealer):
     card2_value = RANK_VALUE[card2]
     dealer_value = RANK_VALUE[dealer]
 
-    if card1 == card2:  # Split?
+    if card1 == card2:  # Pair
 
         if card1_value == 10:
             return STAND
+
+        if card1_value == 9:
+            return SPLIT if dealer_value in [2, 3, 4, 5, 6, 8, 9] else STAND
 
         if card1_value in [8, 11]:
             return SPLIT
 
         if card1_value in [2, 3, 7]:
-            return SPLIT if 2 <= dealer_value <= 7 else HIT
+            return SPLIT if dealer_value <= 7 else HIT
+
+        if card1_value == 6:
+            return SPLIT if dealer_value <= 6 else HIT
 
         if card1_value == 4:
             return SPLIT if dealer_value in [5, 6] else HIT
 
-        if card1_value == 6:
-            return SPLIT if 2 <= dealer_value <= 6 else HIT
-
-        if card1_value == 9:
-            return SPLIT if dealer_value in [2, 3, 4, 5, 6, 8, 9] else HIT
-
-        # Note: 5,5 will be handled as 10 below
+        # 5+5 falls through and is handled as Hard 10 below
 
     if card1 == 'A':  # Soft total
 
-        if card2_value in [2, 3]:
-            return DOUBLE if dealer_value in [5, 6] else HIT
+        if card2_value in [9, 10]:
+            return STAND
 
-        if card2_value in [4, 5]:
-            return DOUBLE if 4 <= dealer_value <= 6 else HIT
-
-        if card2_value == 6:
-            return DOUBLE if 3 <= dealer_value <= 6 else HIT
+        if card2_value == 8:
+            return DOUBLE_OR_STAND if dealer_value == 6 else STAND
 
         if card2_value == 7:
-            if 3 <= dealer_value <= 6:
-                return DOUBLE
-            elif 9 <= dealer_value:
-                return HIT
-            else:
+            if dealer_value <= 6:
+                return DOUBLE_OR_STAND
+            elif dealer_value <= 8:
                 return STAND
+            else:
+                return HIT
 
-        return STAND
+        if card2_value == 6:
+            return DOUBLE_OR_HIT if 3 <= dealer_value <= 6 else HIT
 
-    else: # Hard total
+        if card2_value in [4, 5]:
+            return DOUBLE_OR_HIT if 4 <= dealer_value <= 6 else HIT
+
+        # 2, 3
+        return DOUBLE_OR_HIT if dealer_value in [5, 6] else HIT
+
+    else:  # Hard total
 
         total = card1_value + card2_value
 
-        if total <= 8:
-            return HIT
+        if total >= 17:
+            return STAND
 
-        if total == 9:
-            return DOUBLE if 3 <= dealer_value <= 6 else HIT
+        if total == 16:
+            if dealer_value <= 6:
+                return STAND
+            elif dealer_value <= 8:
+                return HIT
+            else:
+                return SURRENDER_OR_HIT
 
-        if total == 10:
-            return DOUBLE if dealer_value <= 9 else HIT
+        if total == 15:
+            if dealer_value <= 6:
+                return STAND
+            elif dealer_value == 10:
+                return SURRENDER_OR_HIT
+            else:
+                return HIT
 
-        if total == 11:
-            return DOUBLE if dealer_value <= 10 else HIT
+        if total in [13, 14]:
+            return STAND if dealer_value <= 6 else HIT
 
         if total == 12:
             return STAND if 4 <= dealer_value <= 6 else HIT
 
-        if 13 <= total <= 16:
-            return STAND if 2 <= dealer_value <= 6 else HIT
+        if total == 11:
+            return DOUBLE_OR_HIT
 
-        return STAND
+        if total == 10:
+            return DOUBLE_OR_HIT if dealer_value <= 9 else HIT
+
+        if total == 9:
+            return DOUBLE_OR_HIT if 3 <= dealer_value <= 6 else HIT
+
+        # 5-8
+        return HIT
 
 
 def soft_total(card1, card2):
@@ -149,9 +186,9 @@ def generate_basic_strategy_data():
     "hardness" is "Soft" if at least one of the cards is an Ace,
     or "Hard" otherwise.
 
-    "dealer" is the dealer's up card.
+    "dealer" is the dealer's face-up card.
 
-    "action" is "Hit", "Stand", "Split", or "Double".
+    "action" is "Hit", "Stand", "Split", "DoubleH", "DoubleS" or "Surrender".
     """
     return ({ "card1"    : card1,
               "card2"    : card2,
