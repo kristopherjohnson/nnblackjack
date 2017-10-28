@@ -1,22 +1,16 @@
 #!/usr/bin/env python3
 
 """
-Generates comma-separated values for every possible Blackjack deal.
-
-First two values are cards dealt to the player.
-
-Third value is the dealier's up card.
-
-Fourth value is "Hit", "Stand", "Split", or "Double".
+Generates basic strategy for every possible Blackjack deal.
 
 Cards are represented by one-character symbols, where
 
+- '2' - '9' are numbered cards
 - 'T' is 10
 - 'J' is Jack
 - 'Q' is Queen
 - 'K' is King
 - 'A' is Ace
-- '2' - '9' are numbered cards
 
 """
 
@@ -36,7 +30,7 @@ RANK_VALUE = {
     'J' : 10,
     'Q' : 10,
     'K' : 10,
-    'A' : 11,
+    'A' : 11, # or 1
 }
 
 
@@ -46,18 +40,14 @@ SPLIT = "Split"
 DOUBLE = "Double"
 
 
-def basic_strategy_action(deal):
+def basic_strategy_action(card1, card2, dealer):
     """
     Return the best action ("Hit", "Stand", "Split", or "Double") for the given deal.
     """
 
     # See <https://www.cs.bu.edu/~hwxi/academic/courses/CS320/Spring02/assignments/06/basic-strategy.html>
 
-    card1 = deal[0]
-    card2 = deal[1]
-    dealer = deal[2]
-
-    # If either card is an Ace, make it card1.
+    # If either player card is an Ace, make it card1.
     if card2 == 'A':
         card1, card2 = card2, card1
 
@@ -70,17 +60,17 @@ def basic_strategy_action(deal):
         if card1_value == 10:
             return STAND
 
-        if card1 == 'A' or card1_value == 8:
+        if card1_value in [8, 11]:
             return SPLIT
 
-        if card1_value == 2 or card1_value == 3 or card1_value == 7:
+        if card1_value in [2, 3, 7]:
             if 2 <= dealer_value <= 7:
                 return SPLIT
             else:
                 return HIT
 
         if card1_value == 4:
-            if dealer_value == 5 or dealer_value == 6:
+            if dealer_value in [5, 6]:
                 return SPLIT
             else:
                 return HIT
@@ -92,7 +82,7 @@ def basic_strategy_action(deal):
                 return HIT
 
         if card1_value == 9:
-            if 2 <= dealer_value <= 6 or dealer_value == 8 or dealer_value == 9:
+            if dealer_value in [2, 3, 4, 5, 6, 8, 9]:
                 return SPLIT
             else:
                 return HIT
@@ -101,13 +91,13 @@ def basic_strategy_action(deal):
 
     if card1 == 'A':  # One ace
 
-        if card2_value == 2 or card2_value == 3:
-            if dealer_value == 5 or dealer_value == 6:
+        if card2_value in [2, 3]:
+            if dealer_value in [5, 6]:
                 return DOUBLE
             else:
                 return HIT
 
-        if card2_value == 4 or card2_value == 5:
+        if card2_value in [4, 5]:
             if 4 <= dealer_value <= 6:
                 return DOUBLE
             else:
@@ -171,20 +161,26 @@ def basic_strategy_action(deal):
 
 def generate_basic_strategy_data():
     """
-    Generates CSV records of basic strategy for every possible Blackjack deal.
+    Generates basic strategy for every possible Blackjack deal.
 
-    First two values are cards dealt to the player.
+    Output is a sequence of dictionaries with keys
+    "card1", "card2", "dealer", and "action".
 
-    Third value is the dealer's up card.
+    "card1" and "card2" are the cards dealt to the player.
 
-    Fourth value is "Hit", "Stand", "Split", or "Double".
+    "dealer" is the dealer's up card.
+
+    "action" is "Hit", "Stand", "Split", or "Double".
     """
-    for deal in [(card1, card2, dealer) for card1 in RANKS for card2 in RANKS for dealer in RANKS]:
-        action = basic_strategy_action(deal)
-        print(f"{deal[0]},{deal[1]},{deal[2]},{action}")
+    return ({ "card1"  : card1,
+              "card2"  : card2,
+              "dealer" : dealer,
+              "action" : basic_strategy_action(card1, card2, dealer)
+            } for card1 in RANKS for card2 in RANKS for dealer in RANKS) 
 
 
 if __name__ == "__main__":
-    generate_basic_strategy_data()
+    for deal in generate_basic_strategy_data():
+        print("{card1}-{card2} {dealer} {action}".format(**deal))
 
 
