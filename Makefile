@@ -1,8 +1,8 @@
 PYTHON3=python3
 
-test:
-	$(PYTHON3) generate_basic_strategy_data_tests.py
+run:
+	$(PYTHON3) blackjack.py
 
-.PHONY: test
+.PHONY: run
 
 

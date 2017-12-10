@@ -33,13 +33,28 @@ RANK_VALUE = {
     'A' : 11, # or 1
 }
 
+# Action codes
+HIT              = 0
+STAND            = 1
+SPLIT            = 2
+DOUBLE_OR_HIT    = 3
+DOUBLE_OR_STAND  = 4
+SURRENDER_OR_HIT = 5
 
-HIT = "Hit"
-STAND = "Stand"
-SPLIT = "Split"
-DOUBLE_OR_HIT = "DoubleH"
-DOUBLE_OR_STAND = "DoubleS"
-SURRENDER_OR_HIT = "Surrender"
+ACTION_NAME = {
+    HIT:              "Hit",
+    STAND:            "Stand",
+    SPLIT:            "Split",
+    DOUBLE_OR_HIT:    "DoubleH",
+    DOUBLE_OR_STAND:  "DoubleS",
+    SURRENDER_OR_HIT: "Surrender"
+}
+
+def name_for_action(action):
+    """
+    Return the name for the specified action code.
+    """
+    return ACTION_NAME[action]
 
 
 def basic_strategy_action(card1, card2, dealer):
@@ -48,11 +63,11 @@ def basic_strategy_action(card1, card2, dealer):
 
     Possible return values are
 
-    - "Hit"
-    - "Stand"
-    - "DoubleH" (if Double not allowed, Hit)
-    - "DoubleS" (if Double not allowed, Stand)
-    - "Surrender" (if not allowed, Hit)
+    - HIT
+    - STAND
+    - DOUBLE_OR_HIT (if Double not allowed, Hit)
+    - DOUBLE_OR_STAND (if Double not allowed, Stand)
+    - SURRENDER_OR_HIT (if not allowed, Hit)
     """
 
     # Based on the chart at <https://en.m.wikipedia.org/wiki/Blackjack#Basic_strategy>,
@@ -77,7 +92,7 @@ def basic_strategy_action(card1, card2, dealer):
             return STAND
 
         if card1_value == 9:
-            return SPLIT if dealer_value in [2, 3, 4, 5, 6, 8, 9] else STAND
+            return STAND if dealer_value in [7, 10, 11] else SPLIT
 
         if card1_value in [8, 11]:
             return SPLIT
@@ -115,7 +130,7 @@ def basic_strategy_action(card1, card2, dealer):
         if card2_value in [4, 5]:
             return DOUBLE_OR_HIT if 4 <= dealer_value <= 6 else HIT
 
-        # 2, 3
+        # else card2_value in [2, 3]
         return DOUBLE_OR_HIT if dealer_value in [5, 6] else HIT
 
     else:  # Hard total
@@ -160,7 +175,7 @@ def basic_strategy_action(card1, card2, dealer):
         return HIT
 
 
-def soft_total(card1, card2):
+def total(card1, card2):
     """
     Returns the sum of the values of the two cards.
 
@@ -172,35 +187,61 @@ def soft_total(card1, card2):
         return RANK_VALUE[card1] + RANK_VALUE[card2]
 
 
-def generate_basic_strategy_data():
+def basic_strategy_data_record(card1, card2, dealer):
     """
-    Generates basic strategy actions for every possible Blackjack deal.
-
-    Output is a sequence of dictionaries with keys
-    "card1", "card2", "total", "hardness", "dealer", and "action".
+    Returns a dictionary with keys
+    "card1", "card2", "total", "softness", "dealer", "action", and "action_code".
 
     "card1" and "card2" are the cards dealt to the player.
 
     "total" is the sum of the values of player's cards.
 
-    "hardness" is "Soft" if at least one of the cards is an Ace,
+    "softness" is "Soft" if at least one of the cards is an Ace,
     or "Hard" otherwise.
 
     "dealer" is the dealer's face-up card.
 
     "action" is "Hit", "Stand", "Split", "DoubleH", "DoubleS" or "Surrender".
+
+    "action_code" is a value in the range 0-5.
     """
-    return ({ "card1"    : card1,
-              "card2"    : card2,
-              "total"    : soft_total(card1, card2),
-              "hardness" : "Soft" if card1 == 'A' or card2 == 'A' else "Hard",
-              "dealer"   : dealer,
-              "action"   : basic_strategy_action(card1, card2, dealer)
-            } for card1 in RANKS for card2 in RANKS for dealer in RANKS) 
+    action_code = basic_strategy_action(card1, card2, dealer)
+    action = name_for_action(action_code)
+    return { "card1"       : card1,
+             "card2"       : card2,
+             "total"       : total(card1, card2),
+             "softness"    : "Soft" if card1 == 'A' or card2 == 'A' else "Hard",
+             "dealer"      : dealer,
+             "action"      : action,
+             "action_code" : action_code }
+
+
+def generate_basic_strategy_data():
+    """
+    Returns a generator for basic strategy actions for every possible Blackjack deal.
+
+    Output is a sequence of dictionaries with keys
+    "card1", "card2", "total", "softness", "dealer", "action", and "action_code".
+
+    "card1" and "card2" are the cards dealt to the player.
+
+    "total" is the sum of the values of player's cards.
+
+    "softness" is "Soft" if at least one of the cards is an Ace,
+    or "Hard" otherwise.
+
+    "dealer" is the dealer's face-up card.
+
+    "action" is "Hit", "Stand", "Split", "DoubleH", "DoubleS" or "Surrender".
+
+    "action_code" is a value in the range 0-5.
+    """
+    return (basic_strategy_data_record(card1, card2, dealer)
+            for card1 in RANKS for card2 in RANKS for dealer in RANKS) 
 
 
 if __name__ == "__main__":
     for deal in generate_basic_strategy_data():
-        print("{card1}-{card2} ({hardness} {total}) {dealer} {action}".format(**deal))
+        print("{card1}-{card2} ({softness} {total}) {dealer} -> {action} [{action_code}]".format(**deal))
 
 
